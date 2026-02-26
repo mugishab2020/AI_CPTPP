@@ -3,7 +3,20 @@ import Sidebar from "../components/Sidebar";
 import DashboardCards from "../components/DashboardCards";
 import { Bell, Settings } from "lucide-react";
 
-import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 
 const AdminDashboard = () => {
   /* Payment Chart Data */
@@ -37,10 +50,31 @@ const AdminDashboard = () => {
     },
   ];
 
+  /* Line Chart Data */
+  const trendData = [
+    { month: "Jan", active: 4, completed: 7 },
+    { month: "Feb", active: 5, completed: 6 },
+    { month: "Mar", active: 6, completed: 5 },
+    { month: "Apr", active: 7, completed: 4 },
+    { month: "May", active: 8, completed: 5 },
+    { month: "Jun", active: 9, completed: 4 },
+  ];
+
+  /* Bar Chart Data */
+  const revenueData = [
+    { month: "Jan", revenue: 42000 },
+    { month: "Feb", revenue: 38000 },
+    { month: "Mar", revenue: 52000 },
+    { month: "Apr", revenue: 47000 },
+    { month: "May", revenue: 61000 },
+    { month: "Jun", revenue: 58000 },
+  ];
+  const currentUser = "project_manager"
   return (
     <div className="flex bg-gray-50 min-h-screen">
       {/* Sidebar */}
-      <Sidebar />
+      
+      <Sidebar userType={currentUser} className="fixed"/>
 
       {/* Main Content */}
       <div className="flex-1 p-8">
@@ -63,7 +97,67 @@ const AdminDashboard = () => {
         </div>
 
         {/* Stat Cards */}
-        <DashboardCards />
+        <DashboardCards userRole="admin" />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
+          {/* Project Status Trend */}
+          <div className="bg-white border rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-gray-800 mb-4">
+              Project Status Trend
+            </h2>
+
+            <div className="w-full h-64">
+              <ResponsiveContainer>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+
+                  <Line
+                    type="monotone"
+                    dataKey="active"
+                    stroke="#10B981"
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="completed"
+                    stroke="#3B82F6"
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Monthly Revenue */}
+          <div className="bg-white border rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-gray-800 mb-4">
+              Monthly Revenue
+            </h2>
+
+            <div className="w-full h-64">
+              <ResponsiveContainer>
+                <BarChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+
+                  <Bar
+                    dataKey="revenue"
+                    fill="#8B5CF6"
+                    radius={[10, 10, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
 
         {/* Payment Status + Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
@@ -120,9 +214,7 @@ const AdminDashboard = () => {
                   <p className="text-sm text-gray-500">
                     On-Time Completion Rate
                   </p>
-                  <h3 className="text-2xl font-bold text-green-600">
-                    92%
-                  </h3>
+                  <h3 className="text-2xl font-bold text-green-600">92%</h3>
                 </div>
 
                 <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-600">
@@ -132,12 +224,8 @@ const AdminDashboard = () => {
 
               {/* Avg Duration */}
               <div>
-                <p className="text-sm text-gray-500">
-                  Avg Project Duration
-                </p>
-                <h3 className="text-xl font-bold text-blue-600">
-                  8.5 weeks
-                </h3>
+                <p className="text-sm text-gray-500">Avg Project Duration</p>
+                <h3 className="text-xl font-bold text-blue-600">8.5 weeks</h3>
                 <p className="text-xs text-gray-400">
                   vs 9.2 weeks — 8% faster
                 </p>
@@ -145,20 +233,16 @@ const AdminDashboard = () => {
 
               {/* Client Satisfaction */}
               <div>
-                <p className="text-sm text-gray-500">
-                  Client Satisfaction
-                </p>
-                <h3 className="text-xl font-bold text-blue-600">
-                  4.8/5.0
-                </h3>
-                <p className="text-yellow-400 text-sm">
-                  ★★★★★
-                </p>
+                <p className="text-sm text-gray-500">Client Satisfaction</p>
+                <h3 className="text-xl font-bold text-blue-600">4.8/5.0</h3>
+                <p className="text-yellow-400 text-sm">★★★★★</p>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Project Trend + Monthly Revenue Charts */}
+        
         {/* Recent Projects Table */}
         <div className="bg-white border rounded-2xl p-6 shadow-sm mt-10">
           <h2 className="text-lg font-bold text-gray-800 mb-4">
