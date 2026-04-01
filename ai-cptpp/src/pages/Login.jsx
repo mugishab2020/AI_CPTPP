@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, Shield, User, Briefcase } from "lucide-react";
 import Navbar from "../components/Navbar";
 
 const Login = () => {
   const [role, setRole] = useState("Project Manager");
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-white">
@@ -115,16 +117,20 @@ const Login = () => {
             </div>
 
             {/* Sign In Button */}
-            <button className="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 rounded-xl shadow-md transition">
+            <button
+              type="button"
+              onClick={() => navigate("/admin")}
+              className="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 rounded-xl shadow-md transition"
+            >
               Sign In
             </button>
 
             {/* Signup */}
             <p className="text-center text-sm text-gray-500 mt-6">
               Don’t have an account?{" "}
-              <a href="#" className="text-sky-500 font-medium hover:underline">
+              <Link to="/signup" className="text-sky-500 font-medium hover:underline">
                 Sign up
-              </a>
+              </Link>
             </p>
           </form>
         </div>

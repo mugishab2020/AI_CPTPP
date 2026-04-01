@@ -1,5 +1,5 @@
 import React from "react";
-
+import { Link } from "react-router-dom";
 import FeaturesSection from "../components/FeaturesSection";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
@@ -26,9 +26,12 @@ const Welcome = () => {
 
         {/* Buttons */}
         <div className="mt-10 flex gap-6">
-          <button className="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-8 py-3 rounded-xl flex items-center gap-2 shadow-md">
+          <Link
+            to="/login"
+            className="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-8 py-3 rounded-xl flex items-center gap-2 shadow-md"
+          >
             Get Started →
-          </button>
+          </Link>
 
           <button className="border border-gray-300 hover:border-gray-400 text-gray-700 font-semibold px-8 py-3 rounded-xl shadow-sm">
             Watch Demo
