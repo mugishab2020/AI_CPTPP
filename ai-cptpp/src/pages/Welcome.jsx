@@ -1,9 +1,26 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 import FeaturesSection from "../components/FeaturesSection";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
+
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
 const Welcome = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    // If user is already logged in, redirect to their dashboard
+    if (user) {
+      if (user.role === "ADMIN") navigate("/admin");
+      else if (user.role === "MANAGER") navigate("/projectmanager");
+      else if (user.role === "CLIENT") navigate("/client_dashboard");
+      else if (user.role === "TEAM_MEMBER") navigate("/team-member");
+    }
+  }, [user, navigate]);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar */}
@@ -26,7 +43,8 @@ const Welcome = () => {
 
         {/* Buttons */}
         <div className="mt-10 flex gap-6">
-          <button className="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-8 py-3 rounded-xl flex items-center gap-2 shadow-md">
+          <button className="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-8 py-3 rounded-xl flex items-center gap-2 shadow-md" 
+          onClick={() => navigate("/login")}>
             Get Started →
           </button>
 

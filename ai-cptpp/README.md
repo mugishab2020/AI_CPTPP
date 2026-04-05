@@ -17,6 +17,6 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ---------- #progress#.........
 
-# i stopped on AIAnalytics.jsx.
+# i stopped on Invoices page for Clients.
 
 # i need to finish the mvp of that page

@@ -1,210 +1,254 @@
-import React from "react";
-import Sidebar from "../components/Sidebar";
-import { 
-  Bell, Settings, RefreshCcw, Upload, 
-  TrendingUp, Target, BrainCircuit, AlertCircle 
-} from "lucide-react";
+import { useState, useEffect } from 'react';
+import {
+  TrendingUp, Target, BrainCircuit, AlertCircle,
+  CheckCircle, Clock, DollarSign, Loader2, RefreshCcw
+} from 'lucide-react';
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, LineChart, Line
+} from 'recharts';
+import Sidebar from '../components/Sidebar';
+import Topbar from '../components/Topbar';
+import { useAuth } from '../context/AuthContext';
+
+const API_BASE = 'http://localhost:3001';
+const fmt = (n) => `$${Number(n ?? 0).toLocaleString()}`;
+
+const LEVEL_STYLE = {
+  High:   'border-red-200 bg-red-50/40 text-red-800',
+  Medium: 'border-yellow-200 bg-yellow-50/40 text-yellow-800',
+  Low:    'border-green-200 bg-green-50/40 text-green-800',
+};
+const LEVEL_BADGE = {
+  High:   'bg-red-100 text-red-600',
+  Medium: 'bg-yellow-100 text-yellow-700',
+  Low:    'bg-green-100 text-green-600',
+};
+
+const StatCard = ({ label, value, sub, icon: Icon, bg, color }) => (
+  <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+    <div className="flex justify-between items-start mb-3">
+      <div>
+        <p className="text-sm text-gray-400 font-medium">{label}</p>
+        <h3 className="text-3xl font-bold text-slate-900 mt-1">{value}</h3>
+      </div>
+      <div className={`p-3 rounded-xl ${bg}`}>
+        <Icon size={20} className={color} />
+      </div>
+    </div>
+    {sub && <p className="text-xs text-gray-400">{sub}</p>}
+  </div>
+);
 
 const AIAnalytics = () => {
-  const userType = "admin";
+  const { token } = useAuth();
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
 
-  const metrics = [
-    { 
-      label: "Avg. Efficiency", 
-      value: "87%", 
-      trend: "↑ 5% from last month", 
-      trendColor: "text-green-500", 
-      icon: <TrendingUp className="text-green-600" size={20} />, 
-      bgColor: "bg-green-50" 
-    },
-    { 
-      label: "On-Time Delivery", 
-      value: "92%", 
-      trend: "↑ 3% from last month", 
-      trendColor: "text-green-500", 
-      icon: <Target className="text-blue-600" size={20} />, 
-      bgColor: "bg-blue-50" 
-    },
-    { 
-      label: "Quality Score", 
-      value: "91%", 
-      trend: "↑ 7% from last month", 
-      trendColor: "text-green-500", 
-      icon: <BrainCircuit className="text-purple-600" size={20} />, 
-      bgColor: "bg-purple-50" 
-    },
-    { 
-      label: "At-Risk Projects", 
-      value: "3", 
-      trend: "Requires attention", 
-      trendColor: "text-red-500", 
-      icon: <AlertCircle className="text-red-600" size={20} />, 
-      bgColor: "bg-red-50" 
-    },
-  ];
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const res  = await fetch(`${API_BASE}/analytics/overview`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || 'Failed to load analytics');
+      setData(json.data);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  };
 
-  // New Data for the bottom section
-  const recommendations = [
-    {
-      title: "Project Delay Risk",
-      desc: "Dashboard Upgrade has 78% probability of delay due to resource constraints",
-      rec: "Add 2 additional developers to the team",
-      level: "High",
-      theme: "border-red-200 bg-red-50/30 text-red-800",
-      badge: "bg-red-100 text-red-600"
-    },
-    {
-      title: "Budget Overrun Alert",
-      desc: "AI Integration project may exceed budget by $8,000 at current burn rate",
-      rec: "Review scope and timeline with client",
-      level: "Medium",
-      theme: "border-yellow-200 bg-yellow-50/30 text-yellow-800",
-      badge: "bg-yellow-100 text-yellow-600"
-    },
-    {
-      title: "Team Capacity Issue",
-      desc: "3 team members are at 120% capacity this month",
-      rec: "Redistribute tasks to available team members",
-      level: "High",
-      theme: "border-red-200 bg-red-50/30 text-red-800",
-      badge: "bg-red-100 text-red-600"
-    },
-    {
-      title: "Quality Improvement",
-      desc: "Code quality metrics have improved 15% month-over-month",
-      rec: "Continue current development practices",
-      level: "Low",
-      theme: "border-green-200 bg-green-50/30 text-green-800",
-      badge: "bg-green-100 text-green-600"
-    }
-  ];
+  useEffect(() => { load(); }, [token]);
+
+  const s = data?.summary;
+
+  // Chart data from project forecasts
+  const progressChartData = (data?.projectForecasts || []).map(p => ({
+    name: p.name.length > 14 ? p.name.slice(0, 14) + '…' : p.name,
+    progress: p.progress,
+  }));
+
+  // Team efficiency chart
+  const teamChartData = (data?.teamPerformance || []).map(m => ({
+    name: m.name.split(' ')[0],
+    efficiency: m.efficiency,
+    completed: m.completed,
+  }));
 
   return (
-    <div className="flex min-h-screen bg-white">
-      <Sidebar userType={userType} />
+    <div className="flex min-h-screen bg-slate-50 font-sans">
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 p-8">
+        <Topbar />
 
-      {/* Main Content - ml-64 to accommodate Sidebar */}
-      <div className="flex-1 ml-1 p-8">
-        
-        {/* Top Header Navigation */}
-        <div className="flex justify-end gap-5 mb-2 text-gray-400">
-          <Bell size={22} className="cursor-pointer hover:text-gray-600" />
-          <Settings size={22} className="cursor-pointer hover:text-gray-600" />
-        </div>
-
-        {/* Page Title & Actions */}
         <div className="flex justify-between items-start mb-8">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">AI Analytics & Performance</h1>
-            <p className="text-gray-500 mt-1">Predictive insights and performance metrics powered by AI</p>
+            <p className="text-gray-500 mt-1">Predictive insights and performance metrics</p>
           </div>
-          <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 border border-sky-400 text-sky-500 rounded-2xl hover:bg-sky-50 transition font-medium">
-              <RefreshCcw size={18} /> Refresh
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-[#00a3cc] text-white rounded-xl hover:bg-[#008fb3] transition font-medium shadow-sm">
-              <Upload size={18} /> Export
-            </button>
-          </div>
+          <button onClick={load} disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 border border-sky-400 text-sky-500 rounded-xl hover:bg-sky-50 transition font-medium disabled:opacity-50">
+            <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
         </div>
 
-        {/* Analytics Metric Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {metrics.map((item, idx) => (
-            <div key={idx} className="border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-white">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-400 mb-1">{item.label}</p>
-                  <h3 className="text-3xl font-bold text-slate-900">{item.value}</h3>
-                </div>
-                <div className={`p-3 rounded-xl ${item.bgColor}`}>
-                  {item.icon}
-                </div>
-              </div>
-              <p className={`text-xs font-semibold ${item.trendColor}`}>
-                {item.trend}
-              </p>
-            </div>
-          ))}
-        </div>
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-600 rounded-xl px-5 py-3 text-sm">{error}</div>
+        )}
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-          <div className="border border-gray-100 rounded-3xl p-8 shadow-sm bg-white">
-            <h3 className="text-xl font-bold text-slate-800 mb-8">Project Status Trend</h3>
-            <div className="aspect-[16/9] w-full flex items-center justify-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-              <p className="text-gray-400 text-sm italic">[Area Chart Visualization]</p>
-            </div>
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 size={32} className="animate-spin text-slate-300" />
           </div>
-
-          <div className="border border-gray-100 rounded-3xl p-8 shadow-sm bg-white">
-            <h3 className="text-xl font-bold text-slate-800 mb-8">Monthly Revenue</h3>
-            <div className="aspect-[16/9] w-full flex items-center justify-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-              <p className="text-gray-400 text-sm italic">[Line Chart Visualization]</p>
+        ) : (
+          <>
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+              <StatCard label="Task Completion"  value={`${s?.completionRate ?? 0}%`}
+                sub={`${s?.doneTasks ?? 0} of ${s?.totalTasks ?? 0} tasks done`}
+                icon={CheckCircle} bg="bg-green-50" color="text-green-600" />
+              <StatCard label="On-Time Rate"     value={`${s?.onTimeRate ?? 0}%`}
+                sub={`${s?.completedProjects ?? 0} projects completed`}
+                icon={Target} bg="bg-blue-50" color="text-blue-600" />
+              <StatCard label="Overdue Tasks"    value={s?.overdueTasks ?? 0}
+                sub="Requires immediate attention"
+                icon={AlertCircle} bg="bg-red-50" color="text-red-600" />
+              <StatCard label="Revenue Collected" value={fmt(s?.paidRevenue)}
+                sub={`${fmt(s?.pendingRevenue)} pending`}
+                icon={DollarSign} bg="bg-purple-50" color="text-purple-600" />
             </div>
-          </div>
-        </div>
 
-        {/* AI Recommendations Section */}
-        <div className="mb-10">
-          <h3 className="text-xl font-bold text-slate-900 mb-6">AI-Powered Insights & Recommendations</h3>
-          <div className="space-y-4">
-            {recommendations.map((item, idx) => (
-              <div key={idx} className={`border rounded-[22px] p-6 ${item.theme}`}>
-                <div className="flex justify-between items-start">
-                  <div className="flex gap-4">
-                    <div className="mt-1"><BrainCircuit size={24} /></div>
-                    <div>
-                      <h4 className="font-bold text-lg">{item.title}</h4>
-                      <p className="text-sm mt-1 opacity-80">{item.desc}</p>
-                    </div>
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Project progress */}
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-base font-bold text-slate-800 mb-4">Project Progress</h3>
+                {progressChartData.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-10">No active projects</p>
+                ) : (
+                  <div className="h-52">
+                    <ResponsiveContainer>
+                      <BarChart data={progressChartData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} />
+                        <Tooltip formatter={(v) => [`${v}%`, 'Progress']} />
+                        <Bar dataKey="progress" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                  <span className={`px-4 py-1 rounded-full text-xs font-bold ${item.badge}`}>
-                    {item.level}
-                  </span>
-                </div>
-                <div className="mt-4 pt-4 border-t border-current border-opacity-10 text-sm">
-                  <span className="font-bold">Recommendation:</span> {item.rec}
-                </div>
+                )}
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Project Completion Forecast Section */}
-        <div className="border border-gray-100 rounded-[32px] p-8 shadow-sm bg-white">
-          <h3 className="text-xl font-bold text-slate-900 mb-8">Project Completion Forecast</h3>
-          <div className="space-y-8">
-            {/* Project 1 */}
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <span className="font-bold text-slate-700">E-Commerce</span>
-                <span className="px-3 py-1 bg-sky-100 text-sky-600 rounded-full text-[10px] font-bold uppercase tracking-wider">On Track</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-sky-500 rounded-full" style={{ width: '95%' }}></div>
-                </div>
-                <span className="text-sm font-bold text-gray-400">95%</span>
+              {/* Team efficiency */}
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-base font-bold text-slate-800 mb-4">Team Efficiency</h3>
+                {teamChartData.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-10">No team data available</p>
+                ) : (
+                  <div className="h-52">
+                    <ResponsiveContainer>
+                      <LineChart data={teamChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
+                        <Tooltip formatter={(v) => [`${v}%`, 'Efficiency']} />
+                        <Line type="monotone" dataKey="efficiency" stroke="#10B981" strokeWidth={2.5} dot={{ r: 4 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Project 2 */}
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <span className="font-bold text-slate-700">Mobile App</span>
-                <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[10px] font-bold uppercase tracking-wider">Completed</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 rounded-full" style={{ width: '100%' }}></div>
+            {/* AI Insights */}
+            {data?.insights?.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <BrainCircuit size={20} className="text-purple-500" />
+                  AI-Powered Insights
+                </h3>
+                <div className="space-y-3">
+                  {data.insights.map((ins, i) => (
+                    <div key={i} className={`border rounded-2xl p-5 ${LEVEL_STYLE[ins.level]}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold text-base">{ins.title}</h4>
+                        <span className={`px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-widest ${LEVEL_BADGE[ins.level]}`}>
+                          {ins.level}
+                        </span>
+                      </div>
+                      <p className="text-sm opacity-80 mb-2">{ins.desc}</p>
+                      <p className="text-sm"><span className="font-bold">Recommendation:</span> {ins.rec}</p>
+                    </div>
+                  ))}
                 </div>
-                <span className="text-sm font-bold text-gray-400">100%</span>
               </div>
-            </div>
-          </div>
-        </div>
+            )}
 
+            {/* Team Performance Table */}
+            {data?.teamPerformance?.length > 0 && (
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm mb-8">
+                <h3 className="text-base font-bold text-slate-800 mb-5">Team Member Performance</h3>
+                <div className="space-y-4">
+                  {data.teamPerformance.map(m => (
+                    <div key={m.id} className="border border-slate-100 rounded-xl p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <div>
+                          <p className="font-bold text-slate-800">{m.name}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {m.completed} completed · {m.inProgress} in progress
+                            {m.overdue > 0 && <span className="text-red-500 ml-2">· {m.overdue} overdue</span>}
+                          </p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-black ${
+                          m.efficiency >= 80 ? 'bg-green-100 text-green-700' :
+                          m.efficiency >= 50 ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-red-100 text-red-600'
+                        }`}>
+                          {m.efficiency}% efficiency
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-700 ${
+                          m.efficiency >= 80 ? 'bg-green-500' :
+                          m.efficiency >= 50 ? 'bg-yellow-400' : 'bg-red-400'
+                        }`} style={{ width: `${m.efficiency}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Project Forecast */}
+            {data?.projectForecasts?.length > 0 && (
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-base font-bold text-slate-800 mb-5">Project Completion Forecast</h3>
+                <div className="space-y-4">
+                  {data.projectForecasts.map(p => (
+                    <div key={p.id}>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="font-semibold text-slate-700 text-sm">{p.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                            p.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+                          }`}>{p.status}</span>
+                          <span className="text-xs font-bold text-slate-400">{p.progress}%</span>
+                        </div>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-700 ${
+                          p.status === 'COMPLETED' ? 'bg-green-500' : 'bg-blue-500'
+                        }`} style={{ width: `${p.progress}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
