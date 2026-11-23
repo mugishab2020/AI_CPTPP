@@ -4,12 +4,10 @@ import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// Public pages
-import Welcome  from "./pages/Welcome";
-import Login    from "./pages/Login";
-import Register from "./pages/Signup";
-
-// Admin pages
+// Pages
+import Welcome from "./pages/Welcome";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import AdminDashboard from "./pages/AdminDashboard";
 import Projects       from "./pages/Projects";
 import Payments       from "./pages/Payments";
@@ -63,48 +61,13 @@ const App = () => (
         }}
       />
       <Routes>
-        {/* Public */}
-        <Route path="/"         element={<Welcome />} />
-        <Route path="/login"    element={<Login />} />
-        <Route path="/register" element={<Register />} />
-
-        {/* Admin */}
-        <Route path="/admin"          element={<Admin><AdminDashboard /></Admin>} />
-        <Route path="/projects"       element={<Admin><Projects /></Admin>} />
-        <Route path="/payments"       element={<Admin><Payments /></Admin>} />
-        <Route path="/ai-analytics"   element={<Admin><AIAnalytics /></Admin>} />
-        <Route path="/users"          element={<Admin><Users /></Admin>} />
-        <Route path="/documentation"  element={<Admin><Documentation /></Admin>} />
-        <Route path="/communication"  element={<Admin><Communication /></Admin>} />
-        <Route path="/reports"        element={<Admin><Reports /></Admin>} />
-
-        {/* Manager */}
-        <Route path="/projectmanager"  element={<Mgr><TeamDashboard /></Mgr>} />
-        <Route path="/pm_projects"     element={<Mgr><PMprojects /></Mgr>} />
-        <Route path="/teamprojects"    element={<Mgr><PMprojects /></Mgr>} />
-        <Route path="/pm_analytics"    element={<Mgr><PMAIAnalytics /></Mgr>} />
-        <Route path="/pm_documentation"element={<Mgr><PMDocumentation /></Mgr>} />
-        <Route path="/team_members"    element={<Mgr><TeamMembers /></Mgr>} />
-        <Route path="/pm_communication"element={<Mgr><PmCommunication /></Mgr>} />
-
-        {/* Client */}
-        <Route path="/client_dashboard"    element={<Client><ClientDashboard /></Client>} />
-        <Route path="/client_projects"     element={<Client><ClientProjects /></Client>} />
-        <Route path="/invoice"             element={<Client><Invoices /></Client>} />
-        <Route path="/client_documentation"element={<Client><ClientDocumentation /></Client>} />
-        <Route path="/client_communication"element={<Client><ClientCommunication /></Client>} />
-
-        {/* Team Member */}
-        <Route path="/team-member"                  element={<Member><TeamMemberDashboard /></Member>} />
-        <Route path="/team-member/projects"         element={<Member><TeamMemberProjects /></Member>} />
-        <Route path="/team-member/projects/:id"     element={<Member><TeamMemberProjectDetail /></Member>} />
-        <Route path="/team-member/tasks"            element={<Member><TeamMemberTasks /></Member>} />
-        <Route path="/team-member/reports"          element={<Member><TeamMemberReport /></Member>} />
-        <Route path="/team-member/communication"    element={<Member><TeamMemberCommunication /></Member>} />
-        <Route path="/team-member/documentation"    element={<Member><TeamMemberDocumentation /></Member>} />
-
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Welcome />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/payments" element={<Payments />} />
+        <Route path="/ai-analytics" element={<AIAnalytics />} />
       </Routes>
     </Router>
   </AuthProvider>

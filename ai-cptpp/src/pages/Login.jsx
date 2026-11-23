@@ -6,13 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { toastSuccess, toastError } from "../utils/toast";
 
 const Login = () => {
-  const [role, setRole] = useState("MANAGER");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-
+  const [role, setRole] = useState("Project Manager");
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   return (
     <div className="min-h-screen bg-white">
