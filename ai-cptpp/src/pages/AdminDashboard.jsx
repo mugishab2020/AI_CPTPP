@@ -1,308 +1,298 @@
-import React from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
-import DashboardCards from "../components/DashboardCards";
-import { Bell, Settings } from "lucide-react";
-
+import Topbar from "../components/Topbar";
+import { Clock, TrendingUp, DollarSign, Users, FolderKanban } from "lucide-react";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  ResponsiveContainer, LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell,
 } from "recharts";
 
+const API_BASE = "http://localhost:3001";
+const fmt = (n) => n != null ? `$${Number(n).toLocaleString()}` : "$0";
+const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444"];
+
+const StatCard = ({ title, value, sub, icon: Icon, iconBg, iconColor }) => (
+  <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex justify-between items-start">
+    <div>
+      <p className="text-gray-500 text-sm">{title}</p>
+      <h2 className="text-3xl font-bold text-gray-900 mt-1">{value}</h2>
+      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+    </div>
+    <div className={`${iconBg} p-3 rounded-2xl ${iconColor}`}>
+      <Icon size={22} />
+    </div>
+  </div>
+);
+
 const AdminDashboard = () => {
-  /* Payment Chart Data */
-  const paymentData = [
-    { name: "Completed", value: 145 },
-    { name: "In Progress", value: 28 },
-    { name: "Pending", value: 12 },
-  ];
+  const { token } = useAuth();
+  const navigate  = useNavigate();
 
-  const COLORS = ["#10B981", "#F59E0B", "#EF4444"];
+  const [projects, setProjects] = useState([]);
+  const [pending,  setPending]  = useState([]);
+  const [users,    setUsers]    = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [loading,  setLoading]  = useState(true);
 
-  /* Recent Projects Data */
-  const projects = [
-    {
-      name: "E-Commerce Platform",
-      client: "Tech Corp",
-      progress: "95%",
-      status: "In Progress",
-    },
-    {
-      name: "Mobile App Redesign",
-      client: "StartUp Inc",
-      progress: "95%",
-      status: "In Progress",
-    },
-    {
-      name: "AI Integration",
-      client: "Enterprise Ltd",
-      progress: "95%",
-      status: "Completed",
-    },
-  ];
+  const authHeader = { Authorization: `Bearer ${token}` };
 
-  /* Line Chart Data */
-  const trendData = [
-    { month: "Jan", active: 4, completed: 7 },
-    { month: "Feb", active: 5, completed: 6 },
-    { month: "Mar", active: 6, completed: 5 },
-    { month: "Apr", active: 7, completed: 4 },
-    { month: "May", active: 8, completed: 5 },
-    { month: "Jun", active: 9, completed: 4 },
-  ];
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [pRes, pendRes, uRes, iRes] = await Promise.all([
+          fetch(`${API_BASE}/projects`,         { headers: authHeader }),
+          fetch(`${API_BASE}/projects/pending`, { headers: authHeader }),
+          fetch(`${API_BASE}/users`,            { headers: authHeader }),
+          fetch(`${API_BASE}/invoices`,         { headers: authHeader }),
+        ]);
+        setProjects(pRes.ok   ? (await pRes.json()).data    || [] : []);
+        setPending(pendRes.ok ? (await pendRes.json()).data || [] : []);
+        setUsers(uRes.ok      ? (await uRes.json()).data    || [] : []);
+        setInvoices(iRes.ok   ? (await iRes.json()).data    || [] : []);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    };
+    load();
+  }, []);
 
-  /* Bar Chart Data */
-  const revenueData = [
-    { month: "Jan", revenue: 42000 },
-    { month: "Feb", revenue: 38000 },
-    { month: "Mar", revenue: 52000 },
-    { month: "Apr", revenue: 47000 },
-    { month: "May", revenue: 61000 },
-    { month: "Jun", revenue: 58000 },
-  ];
-  const currentUser = "project_manager"
+  const totalRevenue   = invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + i.amount, 0);
+  const activeProjects = projects.filter(p => p.status === 'ACTIVE').length;
+  const totalClients   = users.filter(u => u.role === 'CLIENT').length;
+  const completedCount = projects.filter(p => p.status === 'COMPLETED').length;
+  const completionRate = projects.length ? Math.round((completedCount / projects.length) * 100) : 0;
+  const invoiceRate    = invoices.length ? Math.round((invoices.filter(i => i.status === 'PAID').length / invoices.length) * 100) : 0;
+
+  const trendData = (() => {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const map = {};
+    projects.forEach(p => {
+      const m = months[new Date(p.created_at).getMonth()];
+      if (!map[m]) map[m] = { month: m, active: 0, completed: 0, pending: 0 };
+      if (p.status === 'COMPLETED') map[m].completed++;
+      else if (p.status === 'ACTIVE') map[m].active++;
+      else if (p.status === 'PENDING_REVIEW') map[m].pending++;
+    });
+    return Object.values(map);
+  })();
+
+  const revenueData = (() => {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const map = {};
+    invoices.filter(i => i.status === 'PAID').forEach(i => {
+      const m = months[new Date(i.created_at).getMonth()];
+      map[m] = (map[m] || 0) + i.amount;
+    });
+    return months.filter(m => map[m]).map(m => ({ month: m, revenue: map[m] }));
+  })();
+
+  const pieData = [
+    { name: 'Active',    value: activeProjects },
+    { name: 'Completed', value: completedCount },
+    { name: 'Pending',   value: pending.length },
+    { name: 'Cancelled', value: projects.filter(p => p.status === 'CANCELLED').length },
+  ].filter(d => d.value > 0);
+
   return (
-    <div className="flex bg-gray-50 min-h-screen">
-      {/* Sidebar */}
-      
-      <Sidebar userType={currentUser} className="fixed"/>
+    <div className="flex bg-gray-50 min-h-screen font-sans">
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 p-8">
+        <Topbar />
 
-      {/* Main Content */}
-      <div className="flex-1 p-8">
-        {/* Top Bar */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Admin Dashboard
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Welcome back! Here's your platform overview.
-            </p>
-          </div>
-
-          {/* Icons */}
-          <div className="flex gap-4 text-gray-500">
-            <Bell className="cursor-pointer hover:text-gray-700" />
-            <Settings className="cursor-pointer hover:text-gray-700" />
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-500 mt-1">Welcome back! Here is your platform overview.</p>
         </div>
 
-        {/* Stat Cards */}
-        <DashboardCards userRole="admin" />
+        {!loading && pending.length > 0 && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Clock size={20} className="text-yellow-500 shrink-0" />
+              <div>
+                <p className="font-bold text-yellow-800 text-sm">
+                  {pending.length} project{pending.length > 1 ? 's' : ''} awaiting your review
+                </p>
+                <p className="text-yellow-600 text-xs mt-0.5 line-clamp-1">
+                  {pending.map(p => p.name).join(' · ')}
+                </p>
+              </div>
+            </div>
+            <button onClick={() => navigate('/projects')}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shrink-0 ml-4">
+              Review Now
+            </button>
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-          {/* Project Status Trend */}
-          <div className="bg-white border rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">
-              Project Status Trend
-            </h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard title="Total Projects"  value={loading ? '...' : projects.length}
+            sub={completionRate + '% completed'}
+            icon={FolderKanban} iconBg="bg-orange-100" iconColor="text-orange-500" />
+          <StatCard title="Total Revenue"   value={loading ? '...' : fmt(totalRevenue)}
+            sub={invoices.filter(i=>i.status==='PAID').length + ' paid invoices'}
+            icon={DollarSign} iconBg="bg-blue-100" iconColor="text-blue-500" />
+          <StatCard title="Active Clients"  value={loading ? '...' : totalClients}
+            sub={users.length + ' total users'}
+            icon={Users} iconBg="bg-purple-100" iconColor="text-purple-500" />
+          <StatCard title="Active Projects" value={loading ? '...' : activeProjects}
+            sub={pending.length + ' pending review'}
+            icon={TrendingUp} iconBg="bg-green-100" iconColor="text-green-500" />
+        </div>
 
-            <div className="w-full h-64">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-base font-bold text-gray-800 mb-4">Project Status Trend</h2>
+            <div className="w-full h-56">
               <ResponsiveContainer>
                 <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-
-                  <Line
-                    type="monotone"
-                    dataKey="active"
-                    stroke="#10B981"
-                    strokeWidth={3}
-                    dot={{ r: 4 }}
-                  />
-
-                  <Line
-                    type="monotone"
-                    dataKey="completed"
-                    stroke="#3B82F6"
-                    strokeWidth={3}
-                    dot={{ r: 4 }}
-                  />
+                  <Line type="monotone" dataKey="active"    stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 3 }} name="Active" />
+                  <Line type="monotone" dataKey="completed" stroke="#10B981" strokeWidth={2.5} dot={{ r: 3 }} name="Completed" />
+                  <Line type="monotone" dataKey="pending"   stroke="#F59E0B" strokeWidth={2.5} dot={{ r: 3 }} name="Pending" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Monthly Revenue */}
-          <div className="bg-white border rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">
-              Monthly Revenue
-            </h2>
-
-            <div className="w-full h-64">
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-base font-bold text-gray-800 mb-4">Monthly Revenue</h2>
+            <div className="w-full h-56">
               <ResponsiveContainer>
                 <BarChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-
-                  <Bar
-                    dataKey="revenue"
-                    fill="#8B5CF6"
-                    radius={[10, 10, 0, 0]}
-                  />
+                  <Bar dataKey="revenue" fill="#8B5CF6" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        {/* Payment Status + Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-          {/* Payment Status Pie Chart */}
-          <div className="bg-white border rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">
-              Payment Status
-            </h2>
-
-            <div className="flex items-center justify-between">
-              <PieChart width={220} height={220}>
-                <Pie
-                  data={paymentData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={90}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {paymentData.map((entry, index) => (
-                    <Cell key={index} fill={COLORS[index]} />
-                  ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-base font-bold text-gray-800 mb-4">Project Distribution</h2>
+            <div className="flex items-center gap-6">
+              <PieChart width={180} height={180}>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={3} dataKey="value">
+                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
-
                 <Tooltip />
               </PieChart>
-
-              {/* Labels */}
-              <div className="space-y-3 text-sm">
-                <p className="text-green-600 font-semibold">
-                  Completed: 145
-                </p>
-                <p className="text-yellow-500 font-semibold">
-                  In Progress: 28
-                </p>
-                <p className="text-red-500 font-semibold">
-                  Pending: 12
-                </p>
+              <div className="space-y-2.5 text-sm">
+                {pieData.map((d, i) => (
+                  <div key={d.name} className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                    <span className="text-gray-600">{d.name}:</span>
+                    <span className="font-bold text-gray-800">{d.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="bg-white border rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">
-              Quick Stats
-            </h2>
-
-            <div className="space-y-6">
-              {/* Completion Rate */}
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-gray-500">
-                    On-Time Completion Rate
-                  </p>
-                  <h3 className="text-2xl font-bold text-green-600">92%</h3>
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-base font-bold text-gray-800 mb-5">Quick Stats</h2>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm text-gray-500">Project Completion Rate</span>
+                  <span className="text-sm font-bold text-green-600">{completionRate}%</span>
                 </div>
-
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-600">
-                  92%
+                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-green-500 rounded-full" style={{ width: completionRate + '%' }} />
                 </div>
               </div>
-
-              {/* Avg Duration */}
               <div>
-                <p className="text-sm text-gray-500">Avg Project Duration</p>
-                <h3 className="text-xl font-bold text-blue-600">8.5 weeks</h3>
-                <p className="text-xs text-gray-400">
-                  vs 9.2 weeks — 8% faster
-                </p>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm text-gray-500">Invoice Collection Rate</span>
+                  <span className="text-sm font-bold text-blue-600">{invoiceRate}%</span>
+                </div>
+                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-500 rounded-full" style={{ width: invoiceRate + '%' }} />
+                </div>
               </div>
-
-              {/* Client Satisfaction */}
-              <div>
-                <p className="text-sm text-gray-500">Client Satisfaction</p>
-                <h3 className="text-xl font-bold text-blue-600">4.8/5.0</h3>
-                <p className="text-yellow-400 text-sm">★★★★★</p>
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Total Users</p>
+                  <p className="text-xl font-bold text-gray-800 mt-0.5">{loading ? '...' : users.length}</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Pending Invoices</p>
+                  <p className="text-xl font-bold text-orange-500 mt-0.5">{loading ? '...' : invoices.filter(i=>i.status==='PENDING').length}</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Managers</p>
+                  <p className="text-xl font-bold text-gray-800 mt-0.5">{loading ? '...' : users.filter(u=>u.role==='MANAGER').length}</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Team Members</p>
+                  <p className="text-xl font-bold text-gray-800 mt-0.5">{loading ? '...' : users.filter(u=>u.role==='TEAM_MEMBER').length}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Project Trend + Monthly Revenue Charts */}
-        
-        {/* Recent Projects Table */}
-        <div className="bg-white border rounded-2xl p-6 shadow-sm mt-10">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">
-            Recent Projects
-          </h2>
-
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-5">
+            <h2 className="text-base font-bold text-gray-800">Recent Projects</h2>
+            <button onClick={() => navigate('/projects')} className="text-sm text-blue-500 hover:text-blue-700 font-semibold">View All</button>
+          </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-gray-500 border-b">
-                <th className="text-left py-3">Project Name</th>
-                <th className="text-left">Client</th>
-                <th className="text-left">Progress</th>
-                <th className="text-left">Status</th>
-                <th className="text-left">Action</th>
+              <tr className="text-gray-400 border-b text-xs uppercase tracking-widest font-black">
+                <th className="text-left pb-3">Project</th>
+                <th className="text-left pb-3">Client</th>
+                <th className="text-left pb-3">Manager</th>
+                <th className="text-left pb-3">Progress</th>
+                <th className="text-left pb-3">Status</th>
+                <th className="text-left pb-3">Action</th>
               </tr>
             </thead>
-
             <tbody>
-              {projects.map((project, index) => (
-                <tr key={index} className="border-b last:border-none">
-                  <td className="py-4 font-medium text-gray-800">
-                    {project.name}
-                  </td>
-
-                  <td className="text-gray-500">{project.client}</td>
-
-                  {/* Progress */}
+              {loading ? (
+                <tr><td colSpan="6" className="py-8 text-center text-gray-400">Loading...</td></tr>
+              ) : projects.length === 0 ? (
+                <tr><td colSpan="6" className="py-8 text-center text-gray-400">No projects yet</td></tr>
+              ) : projects.slice(0, 6).map(p => (
+                <tr key={p.id} className="border-b last:border-none hover:bg-slate-50/40 transition-colors">
+                  <td className="py-3.5 font-semibold text-gray-800">{p.name}</td>
+                  <td className="text-gray-500">{p.client ? p.client.name : '—'}</td>
+                  <td className="text-gray-500">{p.manager ? p.manager.name : 'Unassigned'}</td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <div className="w-24 bg-gray-200 rounded-full h-2">
-                        <div className="bg-green-500 h-2 rounded-full w-[95%]" />
+                      <div className="w-20 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div className="bg-blue-500 h-full rounded-full" style={{ width: (p.progress || 0) + '%' }} />
                       </div>
-                      <span>{project.progress}</span>
+                      <span className="text-xs text-gray-400">{p.progress || 0}%</span>
                     </div>
                   </td>
-
-                  {/* Status */}
                   <td>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        project.status === "Completed"
-                          ? "bg-green-100 text-green-600"
-                          : "bg-blue-100 text-blue-600"
-                      }`}
-                    >
-                      {project.status}
+                    <span className={'px-2.5 py-1 rounded-full text-xs font-bold ' + (
+                      p.status === 'COMPLETED'      ? 'bg-green-100 text-green-600'   :
+                      p.status === 'ACTIVE'         ? 'bg-blue-100 text-blue-600'     :
+                      p.status === 'PENDING_REVIEW' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-500'
+                    )}>
+                      {p.status ? p.status.replace('_', ' ') : ''}
                     </span>
                   </td>
-
-                  {/* Action */}
                   <td>
-                    <button className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-xl text-xs font-semibold">
-                      View Details
-                    </button>
+                    <button onClick={() => navigate('/projects')} className="text-blue-500 hover:text-blue-700 font-semibold text-xs">View</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
       </div>
     </div>
   );

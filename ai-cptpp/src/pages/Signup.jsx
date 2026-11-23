@@ -1,136 +1,173 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
-import Navbar from "../components/Navbar";
+import React, { useState } from 'react';
+import { Eye, EyeOff, Mail, Lock, User, Shield, Briefcase, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { toastSuccess, toastError } from '../utils/toast';
 
-const Signup = () => {
+const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [role, setRole] = useState('CLIENT'); // Default role
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { register } = useAuth();
+
+  const roles = [
+    { id: 'ADMIN', icon: <Shield size={24} />, label: 'Admin' },
+    { id: 'MANAGER', icon: <Briefcase size={24} />, label: 'Manager' },
+    { id: 'CLIENT', icon: <Users size={24} />, label: 'Client' },
+  ];
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+      {/* Navbar matching Login Screen */}
+      <nav className="flex justify-between items-center px-12 py-6">
+        <div className="flex items-center gap-2">
+          <div className="bg-[#00A6C0] p-1.5 rounded-lg">
+            <div className="text-white font-black text-xs italic">AI</div>
+          </div>
+          <span className="font-bold text-slate-800 tracking-tight">AI-CPTPP</span>
+        </div>
+        <div className="flex gap-8 items-center text-sm font-medium text-slate-500">
+          <a href="#" className="hover:text-slate-800">Features</a>
+          <a href="#" className="hover:text-slate-800">Contact</a>
+          <a href="#" className="hover:text-slate-800">Faqs</a>
+          <a href="/login" className="text-[#00A6C0] font-bold">Sign in</a>
+        </div>
+      </nav>
 
-      <div className="flex justify-center items-center mt-10 px-4">
-        <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-10 border border-gray-100">
+      {/* Register Card Container */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 w-full max-w-md border border-slate-100">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-black text-slate-800">Create Account</h1>
+            <p className="text-slate-400 text-sm font-medium mt-2 tracking-wide">
+              Join us to start managing your projects
+            </p>
+          </div>
 
-          {/* Header */}
-          <h2 className="text-3xl font-extrabold text-center text-gray-900">
-            Create Account
-          </h2>
-          <p className="text-center text-gray-500 mt-2 text-sm">
-            Sign up to get started with AI-CPTPP
-          </p>
-
-          {/* Form */}
-          <form className="mt-8 space-y-5">
-
-            {/* Full Name */}
+          <form className="space-y-5"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setError('');
+              try {
+                const ok = await register(name, email, password, role);
+                if (ok) {
+                  toastSuccess('Account created! Please sign in.');
+                  navigate('/login');
+                } else {
+                  toastError('Registration failed. Please try again.');
+                  setError('Registration failed');
+                }
+              } catch (err) {
+                console.error('Registration error:', err);
+                toastError('Registration failed. Please try again.');
+                setError('Registration failed');
+              }
+            }}
+          >
+            {/* Full Name Field */}
             <div>
-              <label className="text-sm font-medium text-gray-600">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">
                 Full Name
               </label>
-              <div className="flex items-center border rounded-xl px-3 mt-2">
-                <User className="text-gray-400" size={18} />
-                <input
-                  type="text"
-                  placeholder="Enter your full name"
-                  className="w-full px-3 py-3 outline-none text-sm"
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Enter your name"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A6C0]/20 focus:border-[#00A6C0] transition-all"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Email */}
+            {/* Email Field */}
             <div>
-              <label className="text-sm font-medium text-gray-600">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">
                 Email Address
               </label>
-              <div className="flex items-center border rounded-xl px-3 mt-2">
-                <Mail className="text-gray-400" size={18} />
-                <input
-                  type="email"
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                <input 
+                  type="email" 
                   placeholder="Enter your email"
-                  className="w-full px-3 py-3 outline-none text-sm"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A6C0]/20 focus:border-[#00A6C0] transition-all"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password Field */}
             <div>
-              <label className="text-sm font-medium text-gray-600">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">
                 Password
               </label>
-              <div className="flex items-center border rounded-xl px-3 mt-2">
-                <Lock className="text-gray-400" size={18} />
-                <input
-                  type={showPassword ? "text" : "password"}
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                <input 
+                  type={showPassword ? "text" : "password"} 
                   placeholder="Create a password"
-                  className="w-full px-3 py-3 outline-none text-sm"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-12 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A6C0]/20 focus:border-[#00A6C0] transition-all"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}>
-                  {showPassword
-                    ? <EyeOff className="text-gray-400" size={18} />
-                    : <Eye className="text-gray-400" size={18} />
-                  }
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            {/* Confirm Password */}
+            {/* Role Selection Tiles */}
             <div>
-              <label className="text-sm font-medium text-gray-600">
-                Confirm Password
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 ml-1">
+                Register As
               </label>
-              <div className="flex items-center border rounded-xl px-3 mt-2">
-                <Lock className="text-gray-400" size={18} />
-                <input
-                  type={showConfirm ? "text" : "password"}
-                  placeholder="Confirm your password"
-                  className="w-full px-3 py-3 outline-none text-sm"
-                />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)}>
-                  {showConfirm
-                    ? <EyeOff className="text-gray-400" size={18} />
-                    : <Eye className="text-gray-400" size={18} />
-                  }
-                </button>
+              <div className="grid grid-cols-3 gap-3">
+                {roles.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setRole(item.id)}
+                    className={`flex flex-col items-center justify-center py-4 rounded-2xl border transition-all ${
+                      role === item.id 
+                        ? 'border-[#00A6C0] bg-white text-[#00A6C0] shadow-md shadow-cyan-100/50' 
+                        : 'border-slate-100 bg-white text-slate-300 hover:border-slate-200 hover:text-slate-400'
+                    }`}
+                  >
+                    {item.icon}
+                    <span className={`text-[10px] font-black uppercase mt-2 tracking-widest ${
+                      role === item.id ? 'text-[#00A6C0]' : 'text-slate-400'
+                    }`}>
+                      {item.label}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Terms */}
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <input type="checkbox" className="w-4 h-4" />
-              <span>
-                I agree to the{" "}
-                <span className="text-sky-500 font-medium cursor-pointer hover:underline">
-                  Terms & Conditions
-                </span>
-              </span>
-            </div>
-
-            {/* Sign Up Button */}
-            <button
-              type="button"
-              onClick={() => navigate("/admin")}
-              className="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 rounded-xl shadow-md transition"
-            >
-              Create Account
+            {/* Submit Button */}
+            <button className="w-full bg-[#00A6C0] hover:bg-cyan-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-cyan-200 transition-all active:scale-[0.98] mt-4 tracking-widest uppercase text-sm">
+              Sign Up
             </button>
-
-            {/* Login Link */}
-            <p className="text-center text-sm text-gray-500 mt-6">
-              Already have an account?{" "}
-              <Link to="/login" className="text-sky-500 font-medium hover:underline">
-                Sign in
-              </Link>
-            </p>
-
+            {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
           </form>
+
+          <p className="text-center mt-8 text-sm font-medium text-slate-400">
+            Already have an account? <a href="/login" className="text-[#00A6C0] font-bold">Sign in</a>
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-export default Signup;
+export default Register;

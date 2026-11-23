@@ -1,7 +1,9 @@
 import React from "react";
 import FeatureCard from "./FeatureCard";
+import { useNavigate } from "react-router-dom";
 
 const FeaturesSection = () => {
+  const navigate = useNavigate();
   const features = [
     {
       title: "Real-Time Analytics",
@@ -69,7 +71,8 @@ const FeaturesSection = () => {
           and improve client satisfaction.
         </p>
 
-        <button className="mt-8 bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-xl font-semibold shadow-md transition">
+        <button className="mt-8 bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-xl font-semibold shadow-md transition" 
+        onClick={() => navigate("/login")}>
           Get Started →
         </button>
       </div>
